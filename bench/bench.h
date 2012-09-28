@@ -2,39 +2,82 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <cmath>
+#include <map>
+#include <string>
 
 #ifndef BENCH_UNIT
 #define BENCH_UNIT milliseconds
 #endif
 
-#define QUOTE(STR) " "#STR
+#define QUOTE(STR) #STR
 #define TO_STRING(STR) QUOTE(STR)
 
+#define BENCH_CLOCK  std::chrono::system_clock
+
+#define BENCH_DT(TIME)                                    \
+	std::chrono::duration_cast<std::chrono::BENCH_UNIT>(  \
+		BENCH_CLOCK::now() - TIME)
+
+
 namespace bench {
+
+using namespace std::chrono;
+
+struct reference_time
+{
+	static std::map<std::string, double>& get()
+	{
+		static std::map<std::string, double> _m;
+		return _m;
+	}
+};
+
 namespace detail {
 
 template<typename Rep, typename Period>
 inline
-void msg(std::ostream& o, size_t iter, std::chrono::duration<Rep, Period> const& d)
+void msg(std::string s, size_t iter,
+	duration<Rep, Period> const& d)
 {
-	o <<    "N = " << std::setw(12) << iter
-	  << "  dt = " << std::setw(10) << d.count()
-	  << TO_STRING(BENCH_UNIT) << std::endl;
+	double f = double(iter)/duration_cast<nanoseconds>(d).count()*pow(10,9);
+	double r = f;
+	typename std::map<std::string, double>::iterator it;
+	if ((it = reference_time::get().find(s)) != reference_time::get().end())
+		r = it->second;
+	else
+		reference_time::get()[s] = f;
+
+	using namespace std;
+	cout.precision(2);
+	cout << setw(12) << scientific << f   << " it/s    "
+	     << setw(12) << scientific << 1/f << " s/it    "
+	     << setw(12) << fixed << r/f * 100 << "%"
+		 << std::endl;
 }
 
 } // namespace detail
+
+template <class T>
+void preserve(T&& val)
+{
+	  asm volatile("" : "+r" (val));
+}
+
 } // namespace bench
 
-#define _BENCHN(N, SINK, ...) \
-	{                                                                 \
-		using namespace std::chrono;                                  \
-		auto __t_start = system_clock::now();                         \
-		for (size_t ITER = 0; ITER<N; ++ITER) { __VA_ARGS__ }         \
-		auto __t_end = system_clock::now();                           \
-		BENCH_UNIT __duration =                                       \
-			duration_cast<BENCH_UNIT>(__t_end - __t_start);           \
-		bench::detail::msg(SINK, N, __duration);                      \
-	}
 
-#define BENCHN(N, ...) _BENCHN(N, std::cout, __VA_ARGS__)
-#define BENCH(...)      BENCHN(1, __VA_ARGS__)
+#define BENCH_THRESH std::chrono::seconds(1)
+
+#define TEST(NAME, ...) \
+{                                                                     \
+	size_t ITER = 0;                                                  \
+	auto __t   = BENCH_CLOCK::now();                                  \
+	__VA_ARGS__                                                       \
+	auto __d   = BENCH_DT(__t);                                       \
+	size_t END = BENCH_THRESH /                                       \
+		(__d.count() ? __d : std::chrono::nanoseconds(1));            \
+	for (; ITER < END; ITER++) { __VA_ARGS__ }                        \
+	__d = BENCH_DT(__t);                                              \
+	bench::detail::msg(TO_STRING(NAME), END+1, __d);                  \
+}
