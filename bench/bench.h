@@ -69,15 +69,25 @@ void preserve(T&& val)
 
 #define BENCH_THRESH std::chrono::seconds(1)
 
+#define BENCH_BODY(NAME, END, ...)                                    \
+	for (size_t __iter = 0; __iter < __end; __iter++) {               \
+		__VA_ARGS__                                                   \
+	}                                                                 \
+	bench::detail::msg(TO_STRING(NAME), END, BENCH_DT(__t));          \
+
 #define TEST(NAME, ...) \
 {                                                                     \
-	size_t ITER = 0;                                                  \
-	auto __t   = BENCH_CLOCK::now();                                  \
+	auto __t = BENCH_CLOCK::now();                                    \
 	__VA_ARGS__                                                       \
-	auto __d   = BENCH_DT(__t);                                       \
-	size_t END = BENCH_THRESH /                                       \
+	auto __d = BENCH_DT(__t);                                         \
+	size_t __end = BENCH_THRESH /                                     \
 		(__d.count() ? __d : std::chrono::nanoseconds(1));            \
-	for (; ITER < END; ITER++) { __VA_ARGS__ }                        \
-	__d = BENCH_DT(__t);                                              \
-	bench::detail::msg(TO_STRING(NAME), END+1, __d);                  \
+	BENCH_BODY(NAME, __end+1, __VA_ARGS__)                            \
+}
+
+#define TEST_N(NAME, N, ...) \
+{                                                                     \
+	size_t __end = N;                                                 \
+	auto __t = BENCH_CLOCK::now();                                    \
+	BENCH_BODY(NAME, __end, __VA_ARGS__)                              \
 }
