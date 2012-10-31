@@ -1,25 +1,27 @@
 #include "bench/bench.h"
+#include <cmath>
+
 int main(int argc, const char *argv[])
 {
 
 	int x = 0;
 
-	TEST(Kocky,
+	BENCH(SomeName,
 		x += 23;
 		bench::preserve(x);
 	)
 
-	TEST(Kocky,
+	BENCH(SomeName,
 		x *= 23;
 		bench::preserve(x);
 	)
 
-	TEST(Kocky,
+	BENCH(SomeName,
 		x /= 23;
 		bench::preserve(x);
 	)
 
-	TEST(Kocky,
+	BENCH(SomeName,
 		x += sqrt(23);
 		bench::preserve(x);
 	)

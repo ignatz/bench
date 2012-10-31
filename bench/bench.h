@@ -2,58 +2,67 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
-#include <cmath>
 #include <map>
 #include <string>
 #include <functional>
 
-#ifndef BENCH_UNIT
-#define BENCH_UNIT milliseconds
-#endif
+#define BENCH_THRESH    std::chrono::seconds(1)
+#define BENCH_DURATION  std::chrono::nanoseconds
+#define BENCH_CLOCK     std::chrono::system_clock
 
-#define QUOTE(STR) #STR
-#define TO_STRING(STR) QUOTE(STR)
-
-#define BENCH_CLOCK  std::chrono::system_clock
-
-#define BENCH_DT(TIME)                                    \
-	std::chrono::duration_cast<std::chrono::BENCH_UNIT>(  \
-		BENCH_CLOCK::now() - TIME)
-
+#define BENCH_QUOTE(STR) #STR
+#define BENCH_TO_STRING(STR) BENCH_QUOTE(STR)
 
 namespace bench {
 
 using namespace std::chrono;
 
-struct reference_time
-{
-	static std::map<std::string, double>& get()
-	{
-		static std::map<std::string, double> _m;
-		return _m;
-	}
-};
-
 namespace detail {
 
-template<typename Rep, typename Period>
-inline
-void msg(std::string s, size_t iter,
-	duration<Rep, Period> const& d)
+double reference_time(
+	std::string const& name,
+	double const       measured_frequency)
 {
-	double f = double(iter)/duration_cast<nanoseconds>(d).count()*pow(10,9);
-	double r = f;
-	typename std::map<std::string, double>::iterator it;
-	if ((it = reference_time::get().find(s)) != reference_time::get().end())
-		r = it->second;
-	else
-		reference_time::get()[s] = f;
+	typedef std::map<std::string, double> type;
+	static type _m;
+
+	type::iterator it;
+	if ((it = _m.find(name)) != _m.end())
+		return it->second;
+
+	_m[name] = measured_frequency;
+	return measured_frequency;
+}
+
+inline
+double duration_to_frequency(
+	double const         iterations,
+	BENCH_DURATION const duration)
+{
+	return iterations / duration_cast<nanoseconds>(duration).count() *
+		nanoseconds::period::den;
+}
+
+template<typename Time>
+inline
+BENCH_DURATION delta_t(Time const t)
+{
+	return duration_cast<BENCH_DURATION>(BENCH_CLOCK::now() - t);
+}
+
+void message(
+	std::string const&   name,
+	double const         iterations,
+	BENCH_DURATION const duration)
+{
+	double frequency = duration_to_frequency(iterations, duration);
+	double reference = reference_time(name, frequency);
 
 	using namespace std;
 	cout.precision(2);
-	cout << setw(12) << scientific << f   << " it/s    "
-	     << setw(12) << scientific << 1/f << " s/it    "
-	     << setw(12) << fixed << r/f * 100 << "%"
+	cout << setw(12) << scientific << frequency   << " it/s    "
+	     << setw(12) << scientific << 1/frequency << " s/it    "
+	     << setw(12) << fixed << reference/frequency * 100 << "%"
 		 << std::endl;
 }
 
@@ -65,37 +74,36 @@ void preserve(T&& val)
 	  asm volatile("" : "+r" (val));
 }
 
-} // namespace bench
-
-
-void do_the_benching(
-	std::string name,
-	std::function<void ()> code,
-	std::chrono::time_point<BENCH_CLOCK> time,
-	size_t iterations,
-	size_t offset = 0)
+template<typename Lambda>
+void run(
+	std::string const& name,
+	Lambda const code,
+	std::chrono::time_point<BENCH_CLOCK> const& time,
+	size_t const iterations,
+	size_t const offset = 0)
 {
 	for (size_t ii = offset; ii < iterations ; ++ii)
 		code();
-	bench::detail::msg(TO_STRING(NAME), iterations, BENCH_DT(time));
+
+	detail::message(name, iterations, detail::delta_t(time));
 }
 
-#define BENCH_THRESH std::chrono::seconds(1)
+} // namespace bench
 
-#define TEST(NAME, ...) \
+#define BENCH(NAME, ...) \
 { \
 	auto __lambda = [&](){ __VA_ARGS__ }; \
 	auto __t = BENCH_CLOCK::now(); \
 	__lambda(); \
-	auto __d = BENCH_DT(__t); \
+	auto __d = bench::detail::delta_t(__t); \
 	size_t __end = BENCH_THRESH / \
 		(__d.count() ? __d : std::chrono::nanoseconds(1)); \
-	do_the_benching(TO_STRING(NAME), __lambda, __t, __end, 1); \
+	bench::run(BENCH_TO_STRING(NAME), __lambda, __t, __end, 1); \
 }
 
-#define TEST_N(NAME, N, ...) \
+#define BENCH_N(NAME, N, ...) \
 { \
-	auto __t = BENCH_CLOCK::now(); \
 	auto __lambda = [&](){ __VA_ARGS__ }; \
-	do_the_benching(TO_STRING(NAME), __lambda, __t, N); \
+	auto __t = BENCH_CLOCK::now(); \
+	bench::run(BENCH_TO_STRING(NAME), __lambda, __t, N); \
 }

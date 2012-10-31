@@ -6,17 +6,11 @@ recurse    = lambda ctx : map(lambda proj: ctx.recurse(proj), components)
 
 def options(opt):
     opt.load('g++')
-    opt.load('boost')
     recurse(opt)
 
 def configure(cfg):
     cfg.load('g++')
-    cfg.load('boost')
     recurse(cfg)
-
-    cfg.check_boost(
-            lib='serialization system thread',
-            uselib_store='BOOST')
 
 def build(bld):
     recurse(bld)
@@ -25,7 +19,7 @@ def build(bld):
         target          = 'main',
         features        = 'cxx cxxprogram',
         source          = bld.path.ant_glob('*.cc'),
-        use             = ['bench', 'gtest', 'BOOST'],
+        use             = ['bench', 'gtest'],
         install_path    = 'bin',
         cxxflags        = [
                 '-g',
@@ -33,9 +27,6 @@ def build(bld):
                 '-Wall',
                 '-Wextra',
                 '-pedantic',
-                #'-DRANT_DISABLE',
-                #'-DRANT_LIGHTWEIGHT_EXCEPTIONS',
-                #'-DRANT_DISABLE_SERIALIZATION',
             ],
         includes       = '.',
     )
