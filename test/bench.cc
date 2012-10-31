@@ -3,16 +3,6 @@ int main(int argc, const char *argv[])
 {
 
 	int x = 0;
-	//BENCH(
-		//for (unsigned long ii = 0; ii < 1000000000; ++ii)
-			//x +=ii;
-	//)
-
-	//x = 0;
-	//BENCHN(1000000000,
-		//x += ITER;
-	//)
-
 
 	TEST(Kocky,
 		x += 23;

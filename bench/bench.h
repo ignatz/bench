@@ -5,6 +5,7 @@
 #include <cmath>
 #include <map>
 #include <string>
+#include <functional>
 
 #ifndef BENCH_UNIT
 #define BENCH_UNIT milliseconds
@@ -67,27 +68,34 @@ void preserve(T&& val)
 } // namespace bench
 
 
+void do_the_benching(
+	std::string name,
+	std::function<void ()> code,
+	std::chrono::time_point<BENCH_CLOCK> time,
+	size_t iterations,
+	size_t offset = 0)
+{
+	for (size_t ii = offset; ii < iterations ; ++ii)
+		code();
+	bench::detail::msg(TO_STRING(NAME), iterations, BENCH_DT(time));
+}
+
 #define BENCH_THRESH std::chrono::seconds(1)
 
-#define BENCH_BODY(NAME, END, ...)                                    \
-	for (size_t __iter = 0; __iter < __end; __iter++) {               \
-		__VA_ARGS__                                                   \
-	}                                                                 \
-	bench::detail::msg(TO_STRING(NAME), END, BENCH_DT(__t));          \
-
 #define TEST(NAME, ...) \
-{                                                                     \
-	auto __t = BENCH_CLOCK::now();                                    \
-	__VA_ARGS__                                                       \
-	auto __d = BENCH_DT(__t);                                         \
-	size_t __end = BENCH_THRESH /                                     \
-		(__d.count() ? __d : std::chrono::nanoseconds(1));            \
-	BENCH_BODY(NAME, __end+1, __VA_ARGS__)                            \
+{ \
+	auto __lambda = [&](){ __VA_ARGS__ }; \
+	auto __t = BENCH_CLOCK::now(); \
+	__lambda(); \
+	auto __d = BENCH_DT(__t); \
+	size_t __end = BENCH_THRESH / \
+		(__d.count() ? __d : std::chrono::nanoseconds(1)); \
+	do_the_benching(TO_STRING(NAME), __lambda, __t, __end, 1); \
 }
 
 #define TEST_N(NAME, N, ...) \
-{                                                                     \
-	size_t __end = N;                                                 \
-	auto __t = BENCH_CLOCK::now();                                    \
-	BENCH_BODY(NAME, __end, __VA_ARGS__)                              \
+{ \
+	auto __t = BENCH_CLOCK::now(); \
+	auto __lambda = [&](){ __VA_ARGS__ }; \
+	do_the_benching(TO_STRING(NAME), __lambda, __t, N); \
 }
