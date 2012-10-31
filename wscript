@@ -8,10 +8,8 @@ def configure(cfg):
     cfg.env.CXXFLAGS_BENCH = ['-std=c++0x',]
 
 def build(bld):
-    bld.objects(
+    bld(
         target          = 'bench',
-        source          = 'bench/bench.cc',
-        includes        = '.',
         export_includes = '.',
         use             = ['BENCH'],
     )
