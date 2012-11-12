@@ -1,4 +1,8 @@
 #pragma once
+
+// Copyright (c) 2012, Sebastian Jeltsch (sjeltsch@kip.uni-heidelberg.de)
+// Distributed under the terms of the GPLv2 or newer
+
 #include <chrono>
 #include <string>
 
@@ -9,6 +13,7 @@
 #define BENCH_THRESH    std::chrono::seconds(1)
 #define BENCH_DURATION  std::chrono::nanoseconds
 #define BENCH_CLOCK     std::chrono::steady_clock
+#define BENCH_SPACING   12
 
 #define BENCH_QUOTE(STR) #STR
 #define BENCH_TO_STRING(STR) BENCH_QUOTE(STR)
@@ -63,10 +68,11 @@ void message(
 	double reference = reference_time(name, frequency);
 
 	using namespace std;
+	cout << setw(BENCH_SPACING) << left << name << right;
 	cout.precision(2);
-	cout << setw(12) << scientific << frequency   << " it/s    "
-	     << setw(12) << scientific << 1/frequency << " s/it    "
-	     << setw(12) << fixed << reference/frequency * 100 << "%"
+	cout << setw(BENCH_SPACING) << scientific << frequency   << " it/s    "
+	     << setw(BENCH_SPACING) << scientific << 1/frequency << " s/it    "
+	     << setw(BENCH_SPACING) << fixed << reference/frequency * 100 << "%"
 		 << std::endl;
 }
 
@@ -82,7 +88,7 @@ void preserve(T&& val)
 template<typename Lambda>
 void run(
 	std::string const& name,
-	Lambda const code,
+	Lambda const& code,
 	size_t const iterations = 1,
 	size_t const offset = 0,
 	time_t const time = BENCH_CLOCK::now())
@@ -111,3 +117,6 @@ void run(
 	auto __lambda = [&](){ __VA_ARGS__ }; \
 	bench::run(BENCH_TO_STRING(NAME), __lambda, N); \
 }
+
+#undef BENCH_DURATION
+#undef BENCH_SPACING

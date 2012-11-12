@@ -1,29 +1,29 @@
 #include "bench/bench.h"
 #include <cmath>
 
-int main(int argc, const char *argv[])
+int main(int, char const**)
 {
 
 	int x = 0;
 
-	BENCH(SomeName,
+	BENCH(TestBenchName,
+		bench::preserve(x);
 		x += 23;
-		bench::preserve(x);
 	)
 
-	BENCH(SomeName,
+	BENCH(TestBenchName,
+		bench::preserve(x);
 		x *= 23;
-		bench::preserve(x);
 	)
 
-	BENCH(SomeName,
+	BENCH(TestBenchName,
+		bench::preserve(x);
 		x /= 23;
-		bench::preserve(x);
 	)
 
-	BENCH(SomeName,
-		x += sqrt(23);
+	BENCH(TestBenchName,
 		bench::preserve(x);
+		x += sqrt(23);
 	)
 
 	return 0;
