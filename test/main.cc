@@ -38,12 +38,20 @@ int main(int, char const**)
 		std::this_thread::sleep_for(d);
 	)
 
+	bench::CSVLayout layout;
+
 	bench::run("SomeOtherName",
 			   []() {
 					std::chrono::milliseconds d(1337);
 					std::this_thread::sleep_for(d);
 			   },
-			   bench::CSVLayout());
+			   layout);
+
+	BENCH_NL(SomeOtherName, 1, layout,
+		bench::preserve(x);
+		x += sqrt(23);
+	)
+
 
 	return 0;
 }

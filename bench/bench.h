@@ -89,14 +89,16 @@ private:
 
 struct CSVLayout
 {
-	CSVLayout(std::ostream& os = std::cout) : _os(os) {}
+	CSVLayout(std::ostream& os = std::cout) : _os(os)
+	{
+		_os << "# name, it/s, s/it, %" << std::endl;
+	}
 
 	void operator() (std::string const& name,
 					 double const frequency) const
 	{
 		double const reference = find_or_store_reference(name, frequency);
 
-		_os << "# name, it/s, s/it, %" << std::endl;
 		_os << name << ", "
 		    << std::scientific << frequency   << ", "
 		    << std::scientific << 1/frequency << ", "
